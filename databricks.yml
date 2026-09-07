@@ -7,7 +7,7 @@ variables:
     default: blockchain_project
   notification_email:
     description: Email address for job-failure notifications. Set this before deploying (see README) -- left blank here deliberately rather than defaulted to a placeholder address.
-    default: ""
+    default: "jkasbeer2@gmail.com"
 
 # Two targets: `dev` is what `databricks bundle deploy` uses by default (fast iteration,
 # resources prefixed/tagged so they don't collide with anyone else's dev deployment); `prod`
@@ -18,12 +18,12 @@ targets:
     mode: development
     default: true
     workspace:
-      host: https://<your-workspace>.cloud.databricks.com
+      host: https://dbc-936ec9c4-245c.cloud.databricks.com
 
   prod:
     mode: production
     workspace:
-      host: https://<your-workspace>.cloud.databricks.com
+      host: https://dbc-936ec9c4-245c.cloud.databricks.com
     variables:
       catalog: blockchain_project
 
@@ -32,7 +32,7 @@ resources:
     blockchain_pipeline:
       name: "Blockchain Lakehouse - Daily Pipeline"
       schedule:
-        quartz_cron_schedule: "0 0 6 * * ?" # 06:00 daily
+        quartz_cron_expression: "0 0 6 * * ?" # 06:00 daily
         timezone_id: "America/Chicago"
       email_notifications:
         on_failure:
@@ -76,7 +76,7 @@ resources:
     blockchain_maintenance:
       name: "Blockchain Lakehouse - Weekly Maintenance"
       schedule:
-        quartz_cron_schedule: "0 0 8 ? * SUN" # 08:00 every Sunday
+        quartz_cron_expression: "0 0 8 ? * SUN" # 08:00 every Sunday
         timezone_id: "America/Chicago"
       email_notifications:
         on_failure:
