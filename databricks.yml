@@ -73,6 +73,13 @@ resources:
             notebook_path: ./notebooks/03_gold_aggregates.py
             base_parameters:
               catalog: ${var.catalog}
+	- task_key: wallet_anomaly_detection
+	  depends on:
+	    - task_key: gold_aggregates # reads gold.whale_transactions for the overlap check
+	  notebook_task:
+	    notebook_path: ./notebooks/06_wallet_features.py
+	    base_parameters:
+	      catalog: ${var.catalog}
 
     blockchain_maintenance:
       name: "Blockchain Lakehouse - Weekly Maintenance"
