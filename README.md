@@ -1,4 +1,5 @@
 # Blockchain Lakehouse
+#### *Author: Jack Kasbeer*
 
 A Databricks data engineering pipeline that ingests public Bitcoin and Ethereum on-chain data and
 builds it into a medallion-architecture lakehouse — orchestrated, monitored, and deployed via CI/CD.
