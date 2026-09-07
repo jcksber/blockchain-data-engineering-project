@@ -1,97 +1,97 @@
 bundle:
-  name: blockchain-de-project
+	name: blockchain-de-project
 
 variables:
-  catalog:
-    description: Unity Catalog catalog name used by all notebooks (the `catalog` widget in 00_config).
-    default: blockchain_project
-  notification_email:
-    description: Email address for job-failure notifications. Set this before deploying (see README) -- left blank here deliberately rather than defaulted to a placeholder address.
-    default: "jkasbeer2@gmail.com"
+	catalog:
+		description: Unity Catalog catalog name used by all notebooks (the `catalog` widget in 00_config).
+		default: blockchain_project
+	notification_email:
+		description: Email address for job-failure notifications. Set this before deploying (see README) -- left blank here deliberately rather than defaulted to a placeholder address.
+		default: "jkasbeer2@gmail.com"
 
 # Two targets: `dev` is what `databricks bundle deploy` uses by default (fast iteration,
 # resources prefixed/tagged so they don't collide with anyone else's dev deployment); `prod`
 # is what the GitHub Actions workflow deploys to on merge to main. Fill in each `host` for your
 # own workspace before deploying -- see README.
 targets:
-  dev:
-    mode: development
-    default: true
-    workspace:
-      host: https://dbc-936ec9c4-245c.cloud.databricks.com
+	dev:
+		mode: development
+		default: true
+		workspace:
+			host: https://dbc-936ec9c4-245c.cloud.databricks.com
 
-  prod:
-    mode: production
-    workspace:
-      host: https://dbc-936ec9c4-245c.cloud.databricks.com
-      root_path: /Workspace/Users/jkasbeer2@gmail.com/.bundle/${bundle.name}/${bundle.target}
-    variables:
-      catalog: blockchain_project
+	prod:
+		mode: production
+		workspace:
+			host: https://dbc-936ec9c4-245c.cloud.databricks.com
+			root_path: /Workspace/Users/jkasbeer2@gmail.com/.bundle/${bundle.name}/${bundle.target}
+		variables:
+			catalog: blockchain_project
 
 resources:
-  jobs:
-    blockchain_pipeline:
-      name: "Blockchain Lakehouse - Daily Pipeline"
-      schedule:
-        quartz_cron_expression: "0 0 6 * * ?" # 06:00 daily
-        timezone_id: "America/Chicago"
-      email_notifications:
-        on_failure:
-          - ${var.notification_email}
-      # No job_cluster_key / new_cluster on any task below -> serverless compute by default for
-      # notebook tasks. Deliberate: removes cluster-sizing/autoscaling tuning entirely for a
-      # pipeline this size, and is the same "prefer serverless" call as the Associate exam's own
-      # SQL-warehouse guidance. See README for the classic-cluster alternative if you want to
-      # practice/demonstrate manual autoscale tuning instead.
-      tasks:
-        - task_key: bronze_backfill
-          notebook_task:
-            notebook_path: ./notebooks/01_bronze_backfill.py
-            base_parameters:
-              catalog: ${var.catalog}
+	jobs:
+		blockchain_pipeline:
+			name: "Blockchain Lakehouse - Daily Pipeline"
+			schedule:
+				quartz_cron_expression: "0 0 6 * * ?" # 06:00 daily
+				timezone_id: "America/Chicago"
+			email_notifications:
+				on_failure:
+					- ${var.notification_email}
+			# No job_cluster_key / new_cluster on any task below -> serverless compute by default for
+			# notebook tasks. Deliberate: removes cluster-sizing/autoscaling tuning entirely for a
+			# pipeline this size, and is the same "prefer serverless" call as the Associate exam's own
+			# SQL-warehouse guidance. See README for the classic-cluster alternative if you want to
+			# practice/demonstrate manual autoscale tuning instead.
+			tasks:
+				- task_key: bronze_backfill
+					notebook_task:
+						notebook_path: ./notebooks/01_bronze_backfill.py
+						base_parameters:
+							catalog: ${var.catalog}
 
-        - task_key: silver_transform
-          depends_on:
-            - task_key: bronze_backfill
-          notebook_task:
-            notebook_path: ./notebooks/02_silver_transform.py
-            base_parameters:
-              catalog: ${var.catalog}
+				- task_key: silver_transform
+					depends_on:
+						- task_key: bronze_backfill
+					notebook_task:
+						notebook_path: ./notebooks/02_silver_transform.py
+						base_parameters:
+							catalog: ${var.catalog}
 
-        - task_key: data_quality_checks
-          depends_on:
-            - task_key: silver_transform
-          notebook_task:
-            notebook_path: ./notebooks/04_data_quality_checks.py
-            base_parameters:
-              catalog: ${var.catalog}
+				- task_key: data_quality_checks
+					depends_on:
+						- task_key: silver_transform
+					notebook_task:
+						notebook_path: ./notebooks/04_data_quality_checks.py
+						base_parameters:
+							catalog: ${var.catalog}
 
-        - task_key: gold_aggregates
-          depends_on:
-            - task_key: data_quality_checks
-          notebook_task:
-            notebook_path: ./notebooks/03_gold_aggregates.py
-            base_parameters:
-              catalog: ${var.catalog}
-      	- task_key: wallet_anomaly_detection
-      	  depends on:
-      	    - task_key: gold_aggregates # reads gold.whale_transactions for the overlap check
-      	  notebook_task:
-      	    notebook_path: ./notebooks/06_wallet_features.py
-      	    base_parameters:
-      	      catalog: ${var.catalog}
+				- task_key: gold_aggregates
+					depends_on:
+						- task_key: data_quality_checks
+					notebook_task:
+						notebook_path: ./notebooks/03_gold_aggregates.py
+						base_parameters:
+							catalog: ${var.catalog}
+				- task_key: wallet_anomaly_detection
+					depends on:
+						- task_key: gold_aggregates # reads gold.whale_transactions for the overlap check
+					notebook_task:
+						notebook_path: ./notebooks/06_wallet_features.py
+						base_parameters:
+							catalog: ${var.catalog}
 
-    blockchain_maintenance:
-      name: "Blockchain Lakehouse - Weekly Maintenance"
-      schedule:
-        quartz_cron_expression: "0 0 8 ? * SUN" # 08:00 every Sunday
-        timezone_id: "America/Chicago"
-      email_notifications:
-        on_failure:
-          - ${var.notification_email}
-      tasks:
-        - task_key: optimize_tables
-          notebook_task:
-            notebook_path: ./notebooks/05_maintenance_optimize.py
-            base_parameters:
-              catalog: ${var.catalog}
+		blockchain_maintenance:
+			name: "Blockchain Lakehouse - Weekly Maintenance"
+			schedule:
+				quartz_cron_expression: "0 0 8 ? * SUN" # 08:00 every Sunday
+				timezone_id: "America/Chicago"
+			email_notifications:
+				on_failure:
+					- ${var.notification_email}
+			tasks:
+				- task_key: optimize_tables
+					notebook_task:
+						notebook_path: ./notebooks/05_maintenance_optimize.py
+						base_parameters:
+							catalog: ${var.catalog}
